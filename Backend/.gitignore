@@ -29,3 +29,5 @@ Thumbs.db
 
 # Cache
 *.cache
+
+outputs/
