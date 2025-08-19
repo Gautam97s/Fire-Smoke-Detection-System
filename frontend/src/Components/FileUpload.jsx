@@ -9,7 +9,7 @@ export default function FileUpload({ onResult }) {
 
   const handleBrowse = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.click(); // programmatically open file picker
+      fileInputRef.current.click();
     }
   };
 
@@ -29,18 +29,15 @@ export default function FileUpload({ onResult }) {
       onResult(res.data);
     } catch (err) {
       console.error(err);
-      alert("Upload failed ❌");
+      alert("Upload failed");
     } finally {
       setLoading(false);
     }
   };
 
-  
-
   return (
     <div className="w-full max-w-xl mx-auto bg-black/60 rounded-lg shadow p-4">
       <div className="flex items-center justify-between">
-        {/* Hidden file input */}
         <input
           type="file"
           accept="image/*"
@@ -49,7 +46,6 @@ export default function FileUpload({ onResult }) {
           onChange={(e) => setFile(e.target.files[0])}
         />
 
-        {/* Browse button */}
         <Button
           type="button"
           onClick={handleBrowse}
@@ -58,12 +54,10 @@ export default function FileUpload({ onResult }) {
           Browse
         </Button>
 
-        {/* File name display */}
         <span className="text-sm text-gray-300 ml-4 flex-1 truncate">
           {file ? file.name : "No file selected"}
         </span>
 
-        {/* Upload button */}
         <Button
           onClick={handleUpload}
           disabled={loading || !file}
