@@ -8,6 +8,10 @@ from ultralytics import YOLO
 import os
 from typing import List, Dict
 import logging
+import re
+from datetime import datetime
+from fastapi.staticfiles import StaticFiles
+from fastapi import Request
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -69,15 +73,22 @@ def draw_boxes(image: np.ndarray, detections: np.ndarray, names: Dict[int, str])
     
     return output
 
+def secure_filename(filename: str) -> str:
+    """
+    Sanitize the filename for Windows/Unix compatibility.
+    Keeps only letters, numbers, dot, underscore, dash.
+    """
+    return re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+
 @app.post("/detect")
-async def detect(file: UploadFile = File(...)):
-    """Main detection endpoint with proper box visualization"""
+async def detect(file: UploadFile = File(...), request: Request = None):
+    """Main detection endpoint with safe filename handling"""
     try:
-        # Read and validate image
         contents = await file.read()
         if not contents:
             raise HTTPException(400, "Empty file")
         
+        # Decode image
         nparr = np.frombuffer(contents, np.uint8)
         img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img_np is None:
@@ -91,16 +102,22 @@ async def detect(file: UploadFile = File(...)):
             imgsz=640,
             device=device
         )
-        
-        # Process results
         detections = results[0].boxes.data.cpu().numpy()
         
-        # Draw proper boxes
+        # Draw detections
         output_img = draw_boxes(img_np, detections, model.names)
         
-        # Save and return results
-        output_path = os.path.join(OUTPUT_FOLDER, f"result_{file.filename}")
+        # ✅ Secure + unique filename
+        safe_name = secure_filename(file.filename)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"result_{timestamp}_{safe_name}"
+        output_path = os.path.join(OUTPUT_FOLDER, output_filename)
+        
         cv2.imwrite(output_path, output_img)
+
+        # Build full absolute URL
+        base_url = str(request.base_url).rstrip("/")
+        image_url = f"{base_url}/outputs/{output_filename}"
         
         formatted_detections = [
             {
@@ -113,7 +130,7 @@ async def detect(file: UploadFile = File(...)):
         
         return JSONResponse({
             "detections": formatted_detections,
-            "result_image": f"/outputs/result_{file.filename}"
+            "result_image": image_url   # ✅ Now a full URL
         })
         
     except HTTPException:
@@ -151,5 +168,5 @@ async def get_test_image():
     except Exception as e:
         raise HTTPException(500, f"Test image generation failed: {str(e)}")
     
-from fastapi.staticfiles import StaticFiles
+
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")

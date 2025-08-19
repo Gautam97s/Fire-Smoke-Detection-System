@@ -1,38 +1,55 @@
 import React from "react";
+import { Card, CardContent } from "./ui/card";
 
-export default function DetectionResult({ result }) {
+export default function ResultDisplay({ result }) {
   if (!result) return null;
 
   return (
-    <div style={{ textAlign: "center", marginTop: "30px" }}>
-      <h2>Detections</h2>
+    <Card className="w-full max-w-4xl mx-auto mt-8 bg-transparent border border-transparent shadow-xl rounded-2xl backdrop-blur">
+      <CardContent className="p-6 text-white">
+        <h2 className="text-2xl font-bold text-center mb-6 tracking-wide">
+          🔍 Detection Results
+        </h2>
 
-      {result.detections.length === 0 ? (
-        <p>No fire or smoke detected ✅</p>
-      ) : (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {result.detections.map((d, i) => (
-            <li key={i}>
-              <strong>{d.class}</strong> - {(d.confidence * 100).toFixed(2)}%
-            </li>
-          ))}
-        </ul>
-      )}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* 🔥 Processed Image */}
+          {result.result_image && (
+            <div className="flex-1 flex justify-center">
+              <img
+                src={result.result_image} // ✅ Use the full URL directly from backend
+                alt="Detection Result"
+                className="rounded-xl border border-gray-600 shadow-lg max-h-[420px] object-contain bg-black"
+                onError={(e) => {
+                  console.error("Image failed to load:", e.target.src);
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
 
-      {result.result_image && (
-        <div style={{ marginTop: "20px" }}>
-          <h3>Processed Image</h3>
-          <img
-            src={`http://localhost:8000${result.result_image}`}
-            alt="Detection result"
-            style={{
-              maxWidth: "500px",
-              border: "2px solid #444",
-              borderRadius: "6px",
-            }}
-          />
+          {/* 📋 Detections */}
+          <div className="flex-1 bg-gradient-to-br from-gray-900/70 to-gray-800/50 rounded-xl p-4 border border-gray-700 shadow-inner">
+            <h3 className="text-lg font-semibold mb-3">📋 Objects Detected</h3>
+            {result.detections && result.detections.length > 0 ? (
+              <ul className="space-y-3">
+                {result.detections.map((det, idx) => (
+                  <li
+                    key={idx}
+                    className="flex justify-between items-center bg-gray-800/70 px-4 py-2 rounded-lg shadow-md hover:bg-gray-700/70 transition"
+                  >
+                    <span className="font-medium text-red-400">{det.class}</span>
+                    <span className="text-gray-300">
+                      {Math.round(det.confidence * 100)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-400 italic">No objects detected.</p>
+            )}
+          </div>
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
